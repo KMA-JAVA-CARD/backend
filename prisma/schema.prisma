@@ -5,9 +5,9 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider      = "prisma-client"
-  output        = "../generated/prisma"
-  moduleFormat  = "cjs"
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
@@ -15,82 +15,81 @@ datasource db {
   // url      = env("DATABASE_URL")
 }
 
-
 model User {
-  id        Int      @id @default(autoincrement())
-  fullName  String   
-  phone     String   @unique
-  email     String?  
-  address   String?  
-  dob       DateTime? 
+  id       Int       @id @default(autoincrement())
+  fullName String
+  phone    String    @unique
+  email    String?
+  address  String?
+  dob      DateTime?
 
   // 1-1 Relation
-  card      Card?
+  card Card?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Card {
-  id          Int       @id @default(autoincrement())
-  
+  id Int @id @default(autoincrement())
+
   // Card ID (UID)
-  cardSerial  String    @unique 
+  cardSerial String @unique
 
   // RSA Public Key: Use to verify signatures from the card (Base64 or Hex)
-  publicKey   String    @db.Text 
+  publicKey String @db.Text
 
   // Point balance (Backup on DB to compare with balance on card)
-  pointBalance Int      @default(0)
+  pointBalance Int @default(0)
 
   // Card status (For Backend to have the right to refuse service if the card is reported lost)
-  status      CardStatus @default(ACTIVE)
+  status CardStatus @default(ACTIVE)
 
   // Foreign key linking to User
-  userId      Int       @unique
-  user        User      @relation(fields: [userId], references: [id])
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id])
 
   // Relation: 1 Card has many Transactions
   transactions Transaction[]
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // 3. Transaction History Table
 // Records traces of Earning/Spending points
 model Transaction {
-  id          Int      @id @default(autoincrement())
-  
+  id Int @id @default(autoincrement())
+
   // Amount of points changed (e.g., +100 or -50)
-  amount      Int
-  
+  amount Int
+
   // Transaction type: EARN (Accumulate points) or REDEEM (Spend points)
-  type        TransactionType
+  type TransactionType
 
   // Description (e.g., "Purchase at counter 1", "Birthday gift")
   description String?
 
   // (Advanced) Store RSA signature of this transaction as non-repudiation evidence
-  signature   String?  @db.Text
+  signature String? @db.Text
 
   // Transaction time
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   // Linked to which Card
-  cardId      Int
-  card        Card     @relation(fields: [cardId], references: [id])
+  cardId Int
+  card   Card @relation(fields: [cardId], references: [id])
 }
 
 // --- Fixed Choice Lists (Enums) ---
 
 enum CardStatus {
-  ACTIVE    // Active
-  LOCKED    // Locked (due to too many incorrect PIN attempts or reported lost)
-  INACTIVE  // Inactive
+  ACTIVE // Active
+  LOCKED // Locked (due to too many incorrect PIN attempts or reported lost)
+  INACTIVE // Inactive
 }
 
 enum TransactionType {
-  EARN      // Earn/Accumulate points
-  REDEEM    // Redeem/Spend points
+  EARN // Earn/Accumulate points
+  REDEEM // Redeem/Spend points
 }
