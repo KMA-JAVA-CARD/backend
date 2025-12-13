@@ -18,6 +18,10 @@ export class RegisterCardDto {
   publicKey: string;
 
   @IsString()
+  @IsOptional()
+  avatarUrl?: string;
+
+  @IsString()
   @IsNotEmpty()
   fullName: string;
 

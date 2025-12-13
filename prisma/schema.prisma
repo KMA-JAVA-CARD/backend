@@ -23,6 +23,8 @@ model User {
   address  String?
   dob      DateTime?
 
+  avatarUrl String? @db.Text // Lưu đường dẫn ảnh
+
   // 1-1 Relation
   card Card?
 
