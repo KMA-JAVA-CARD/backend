@@ -33,12 +33,13 @@ export class CardController {
     let avatarUrl: string | undefined = undefined;
 
     if (file) {
-      if (!file.mimetype.match(/\/(jpg|jpeg|png)$/)) {
+      if (!file.mimetype.match(/\/(jpg|jpeg|png|webp)$/)) {
         throw new BadRequestException('Only image files are allowed!');
       }
 
       avatarUrl = await this.minioService.uploadFile(file);
     }
+
     return this.cardService.registerCard({
       ...registerCardDto,
       avatarUrl,

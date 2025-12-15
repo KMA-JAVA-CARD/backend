@@ -1,18 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Injectable, Logger } from '@nestjs/common';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  S3Client,
+  PutObjectCommand,
+  HeadBucketCommand,
+  CreateBucketCommand,
+  PutBucketPolicyCommand,
+} from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
-export class MinioService {
+export class MinioService implements OnModuleInit {
   private s3Client: S3Client;
   private bucketName: string;
   private readonly logger = new Logger(MinioService.name);
 
-  constructor(private configService: ConfigService) {
+  constructor(private readonly configService: ConfigService) {
     this.bucketName = this.configService.get<string>('MINIO_BUCKET_NAME')!;
 
     // Khởi tạo S3 Client (Cấu hình để trỏ về MinIO)
@@ -27,6 +33,71 @@ export class MinioService {
       },
       forcePathStyle: true, // Bắt buộc dùng path style để tương thích với MinIO
     });
+  }
+
+  async onModuleInit() {
+    this.logger.log('Initializing MinIO Storage...');
+    await this.ensureBucketExists();
+  }
+
+  /**
+   * Kiểm tra và tự tạo Bucket + Set Policy nếu chưa có
+   */
+  private async ensureBucketExists() {
+    try {
+      // 1. Kiểm tra bucket tồn tại chưa
+      await this.s3Client.send(
+        new HeadBucketCommand({ Bucket: this.bucketName }),
+      );
+      this.logger.log(`Bucket "${this.bucketName}" already exists.`);
+    } catch {
+      // Nếu lỗi là NotFound (404) thì tạo mới
+      this.logger.warn(`Bucket "${this.bucketName}" not found. Creating...`);
+
+      try {
+        // 2. Tạo Bucket
+        await this.s3Client.send(
+          new CreateBucketCommand({ Bucket: this.bucketName }),
+        );
+        this.logger.log(`Bucket "${this.bucketName}" created successfully.`);
+
+        // 3. Set Public Policy (Cho phép mọi người xem ảnh)
+        await this.setBucketPublicPolicy();
+      } catch (createError) {
+        this.logger.error(`Failed to create bucket: ${createError.message}`);
+        throw createError;
+      }
+    }
+  }
+
+  /**
+   * Set quyền Read-Only cho Anonymous User
+   */
+  private async setBucketPublicPolicy() {
+    const policy = {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Sid: 'PublicReadGetObject',
+          Effect: 'Allow',
+          Principal: '*',
+          Action: ['s3:GetObject'],
+          Resource: [`arn:aws:s3:::${this.bucketName}/*`], // Cho phép đọc tất cả file trong bucket
+        },
+      ],
+    };
+
+    try {
+      await this.s3Client.send(
+        new PutBucketPolicyCommand({
+          Bucket: this.bucketName,
+          Policy: JSON.stringify(policy),
+        }),
+      );
+      this.logger.log(`Public access policy applied to "${this.bucketName}".`);
+    } catch (error) {
+      this.logger.error(`Failed to set bucket policy: ${error.message}`);
+    }
   }
 
   /**

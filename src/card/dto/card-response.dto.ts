@@ -13,6 +13,7 @@ export class CardResponseDto {
     email: string | null;
     address: string | null;
     dob: Date | null;
+    avatarUrl?: string | null;
     createdAt: Date;
     updatedAt: Date;
   };

@@ -23,6 +23,7 @@ export class CardService {
       email,
       address,
       dob,
+      avatarUrl,
     } = registerCardDto;
 
     // Check if card serial already exists
@@ -51,6 +52,7 @@ export class CardService {
         email,
         address,
         dob: dob ? new Date(dob) : null,
+        avatarUrl,
         card: {
           create: {
             cardSerial,
@@ -79,6 +81,7 @@ export class CardService {
         email: result.email,
         address: result.address,
         dob: result.dob,
+        avatarUrl: result.avatarUrl,
         createdAt: result.createdAt,
         updatedAt: result.updatedAt,
       },
@@ -112,6 +115,7 @@ export class CardService {
         email: card.user.email,
         address: card.user.address,
         dob: card.user.dob,
+        avatarUrl: card.user.avatarUrl,
         createdAt: card.user.createdAt,
         updatedAt: card.user.updatedAt,
       },
