@@ -12,7 +12,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { CardService } from './card.service';
-import { RegisterCardDto, UpdateUserDto, CardResponseDto } from './dto';
+import {
+  RegisterCardDto,
+  UpdateUserDto,
+  CardResponseDto,
+  VerifyCardDto,
+} from './dto';
 import { MinioService } from 'src/minio/minio.service';
 import { FileInterceptor } from '@nestjs/platform-express/multer';
 
@@ -59,5 +64,17 @@ export class CardController {
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<CardResponseDto> {
     return this.cardService.updateUserInfo(cardSerial, updateUserDto);
+  }
+
+  @Get('auth/challenge')
+  getChallenge() {
+    return {
+      challenge: this.cardService.generateChallenge(),
+    };
+  }
+
+  @Post('auth/verify')
+  verifyCard(@Body() dto: VerifyCardDto) {
+    return this.cardService.verifyCardSignature(dto);
   }
 }
