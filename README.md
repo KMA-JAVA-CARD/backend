@@ -1,3 +1,14 @@
+## Run with Docker Desktop
+
+```bash
+.\run.bat
+```
+
+# Clean run
+```bash
+.\run.bat -clean
+```
+
 ## Project setup
 
 ```bash
