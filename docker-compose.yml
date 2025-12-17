@@ -63,6 +63,7 @@ services:
     ports:
       - "8000:8000"
     environment:
+      NODE_ENV: development
       # Ghi đè cấu hình DB để trỏ vào tên container (Internal Network)
       # Lưu ý: Dùng cổng 5432 (internal), không phải 8888 (external)
       DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-12345678}@javacard_postgres:5432/${POSTGRES_DB:-javacard_db}?schema=public

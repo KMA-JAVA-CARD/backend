@@ -13,6 +13,7 @@ FROM base AS deps
 # Copy file định nghĩa gói trước để tận dụng Docker Cache
 COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma/
+COPY prisma.config.ts ./prisma.config.ts
 
 # Cài đặt dependencies (dùng frozen-lockfile để đảm bảo version y hệt dev)
 RUN pnpm install --frozen-lockfile
@@ -43,6 +44,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
 EXPOSE 8000
 

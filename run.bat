@@ -36,9 +36,8 @@ timeout /t 5 /nobreak >nul
 
 echo.
 echo [INFO] Dang chay Migration (Prisma)...
-:: docker exec -it javacard_api pnpx prisma migrate dev --name init
-:: docker exec -it javacard_api pnpx prisma db push
-docker-compose run --rm api pnpm prisma db push
+docker-compose exec api pnpx prisma migrate dev
+:: Alternative: docker-compose exec api pnpm prisma db push
 
 echo.
 echo ========================================================
