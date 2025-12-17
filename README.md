@@ -4,7 +4,7 @@
 .\run.bat
 ```
 
-# Clean run
+Clean run:
 ```bash
 .\run.bat -clean
 ```
