@@ -59,11 +59,26 @@ export class CardController {
   }
 
   @Patch(':cardSerial/user')
+  @UseInterceptors(FileInterceptor('avatar'))
   async updateUserInfo(
     @Param('cardSerial') cardSerial: string,
     @Body() updateUserDto: UpdateUserDto,
+    @UploadedFile() file: Express.Multer.File,
   ): Promise<CardResponseDto> {
-    return this.cardService.updateUserInfo(cardSerial, updateUserDto);
+    let avatarUrl: string | undefined = undefined;
+
+    if (file) {
+      if (!file.mimetype.match(/\/(jpg|jpeg|png|webp)$/)) {
+        throw new BadRequestException('Only image files are allowed!');
+      }
+
+      avatarUrl = await this.minioService.uploadFile(file);
+    }
+
+    return this.cardService.updateUserInfo(cardSerial, {
+      ...updateUserDto,
+      avatarUrl,
+    });
   }
 
   @Get('auth/challenge')

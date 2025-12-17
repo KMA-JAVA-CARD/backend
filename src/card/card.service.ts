@@ -167,6 +167,9 @@ export class CardService {
           address: updateUserDto.address,
         }),
         ...(updateUserDto.dob && { dob: new Date(updateUserDto.dob) }),
+        ...(updateUserDto.avatarUrl !== undefined && {
+          avatarUrl: updateUserDto.avatarUrl,
+        }),
       },
       include: {
         card: true,
@@ -188,6 +191,7 @@ export class CardService {
         email: updatedUser.email,
         address: updatedUser.address,
         dob: updatedUser.dob,
+        avatarUrl: updatedUser.avatarUrl,
         createdAt: updatedUser.createdAt,
         updatedAt: updatedUser.updatedAt,
       },

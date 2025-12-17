@@ -20,4 +20,8 @@ export class UpdateUserDto {
   @IsDateString()
   @IsOptional()
   dob?: string;
+
+  @IsString()
+  @IsOptional()
+  avatarUrl?: string;
 }
