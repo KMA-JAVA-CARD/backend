@@ -19,7 +19,8 @@ export class MinioService implements OnModuleInit {
   private readonly logger = new Logger(MinioService.name);
 
   constructor(private readonly configService: ConfigService) {
-    this.bucketName = this.configService.get<string>('MINIO_BUCKET_NAME')!;
+    this.bucketName =
+      this.configService.get<string>('AWS_BUCKET_NAME') || 'avatars';
 
     // Khởi tạo S3 Client (Cấu hình để trỏ về MinIO)
     this.s3Client = new S3Client({
@@ -123,8 +124,13 @@ export class MinioService implements OnModuleInit {
 
       // 4. Tạo URL công khai thủ công (Vì PutObject không trả về URL)
       // Format: http://localhost:9000/bucket-name/filename
-      const endpoint = this.configService.getOrThrow<string>('AWS_ENDPOINT');
-      const publicUrl = `${endpoint}/${this.bucketName}/${fileName}`;
+      // const endpoint = this.configService.getOrThrow<string>('AWS_ENDPOINT');
+      const externalEndpoint =
+        this.configService.get<string>('MINIO_EXTERNAL_ENDPOINT') ||
+        'http://localhost:9000';
+
+      // const publicUrl = `${endpoint}/${this.bucketName}/${fileName}`;
+      const publicUrl = `${externalEndpoint}/${this.bucketName}/${fileName}`;
 
       this.logger.log(`File uploaded successfully: ${publicUrl}`);
       return publicUrl;

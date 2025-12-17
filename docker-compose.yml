@@ -1,12 +1,13 @@
 version: '3.8'
 
 services:
+  # --- 1. Database PostgreSQL ---
   postgres:
     image: postgres:16-alpine
     container_name: javacard_postgres
     restart: unless-stopped
     ports:
-      - '8888:5432'
+      - '8888:5432' # Host 8888 -> Container 5432
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-12345678}
@@ -22,19 +23,66 @@ services:
     networks:
       - javacard_network
 
+  # --- 2. pgAdmin (Quản lý DB qua Web) ---
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: javacard_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "admin@example.com"
+      PGADMIN_DEFAULT_PASSWORD: "admin"
+    ports:
+      - "5050:80" # Truy cập qua http://localhost:5050
+    depends_on:
+      - postgres
+    networks:
+      - javacard_network
+
+  # --- 3. MinIO (Lưu trữ ảnh) ---
   minio:
     image: minio/minio:latest
-    container_name: javacard_minio
+    container_name: javacard-minio
     restart: unless-stopped
     ports:
-      - "9000:9000" # API S3
-      - "9001:9001" # Web Console UI
+      - "9000:9000" # API Port
+      - "9001:9001" # Console UI Port
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-password123}
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
+    networks:
+      - javacard_network
+
+  # --- 4. NestJS Backend (API) ---
+  api:
+    build: .
+    container_name: javacard_api
+    restart: on-failure
+    ports:
+      - "8000:8000"
+    environment:
+      # Ghi đè cấu hình DB để trỏ vào tên container (Internal Network)
+      # Lưu ý: Dùng cổng 5432 (internal), không phải 8888 (external)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-12345678}@javacard_postgres:5432/${POSTGRES_DB:-javacard_db}?schema=public
+      
+      # Cấu hình MinIO (Internal Network)
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-admin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-password123}
+      AWS_BUCKET_NAME: ${MINIO_BUCKET_NAME:-avatars}
+      
+      # Endpoint để Backend giao tiếp với MinIO (Internal)
+      AWS_ENDPOINT: http://javacard-minio:9000
+
+      MINIO_EXTERNAL_ENDPOINT: http://localhost:9000
+      
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
     networks:
       - javacard_network
 
