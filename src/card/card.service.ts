@@ -5,12 +5,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service.js';
 import {
   RegisterCardDto,
   UpdateUserDto,
   CardResponseDto,
   VerifyCardDto,
+  CreateTransactionDto,
 } from './dto';
 import * as crypto from 'crypto';
 
@@ -24,7 +25,7 @@ export class CardService {
     const {
       cardSerial,
       publicKey,
-      pointBalance = 0,
+      pointBalance = 20, // Mặc định tặng 20 điểm khi đăng ký
       fullName,
       phone,
       email,
@@ -261,5 +262,100 @@ export class CardService {
         'Verification process failed: ' + error.message,
       );
     }
+  }
+
+  // 3. XỬ LÝ GIAO DỊCH (TÍCH/TIÊU ĐIỂM)
+  async processTransaction(cardSerial: string, dto: CreateTransactionDto) {
+    // A. Tìm thẻ
+    const card = await this.prisma.card.findUnique({
+      where: { cardSerial },
+    });
+    if (!card) {
+      throw new NotFoundException('Card not found');
+    }
+
+    // Tái tạo lại chuỗi dữ liệu mà Frontend đã gửi xuống thẻ để ký
+    const rawData = `${dto.type}|${dto.amount}|${dto.timestamp}`;
+
+    // Lấy Public Key từ DB
+    const publicKey = crypto.createPublicKey({
+      key: {
+        kty: 'RSA',
+        n: Buffer.from(card.publicKey, 'hex').toString('base64url'),
+        e: Buffer.from('010001', 'hex').toString('base64url'),
+      },
+      format: 'jwk',
+    });
+
+    // Verify chữ ký
+    const verify = crypto.createVerify('SHA1');
+    verify.update(Buffer.from(rawData));
+    verify.end();
+
+    const isValid = verify.verify(publicKey, Buffer.from(dto.signature, 'hex'));
+
+    if (!isValid) {
+      throw new BadRequestException(
+        'Invalid signature for transaction data! (Fake Card?)',
+      );
+    }
+
+    const CONVERSION_RATE = 10000; // 10,000 VND = 1 Point
+    let pointChange = Math.floor(dto.amount / CONVERSION_RATE);
+
+    // B. Tính toán điểm
+    if (dto.type === 'EARN') {
+      // Tích điểm: amount là VND -> Chia cho tỷ giá
+      // pointChange = Math.floor(dto.amount / CONVERSION_RATE);
+      if (pointChange === 0) {
+        throw new BadRequestException(
+          'Transaction amount too small to earn points',
+        );
+      }
+    } else if (dto.type === 'REDEEM') {
+      pointChange = -pointChange; // Số âm để trừ
+
+      // Kiểm tra số dư
+      if (card.pointBalance + pointChange < 0) {
+        throw new BadRequestException('Insufficient point balance');
+      }
+    }
+
+    // C. Thực hiện Transaction (DB Transaction để an toàn: Tạo lịch sử + Update số dư cùng lúc)
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 1. Tạo lịch sử giao dịch
+      const transaction = await tx.transaction.create({
+        data: {
+          cardId: card.id,
+          type: dto.type,
+          amount: Math.abs(pointChange), // Lưu số điểm biến động (dương)
+          description:
+            dto.description ||
+            (dto.type === 'EARN'
+              ? `Earn from ${dto.amount} VND`
+              : 'Redeem points'),
+        },
+      });
+
+      // 2. Cập nhật số dư thẻ
+      const updatedCard = await tx.card.update({
+        where: { id: card.id },
+        data: {
+          pointBalance: {
+            increment: pointChange, // Cộng số âm nếu là REDEEM
+          },
+        },
+        include: { user: true }, // Trả về cả info user để UI cập nhật
+      });
+
+      return { transaction, updatedCard };
+    });
+
+    return {
+      success: true,
+      newBalance: result.updatedCard.pointBalance,
+      transactionId: result.transaction.id,
+      pointChange: pointChange,
+    };
   }
 }

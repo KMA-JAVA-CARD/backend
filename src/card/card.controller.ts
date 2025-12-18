@@ -17,6 +17,7 @@ import {
   UpdateUserDto,
   CardResponseDto,
   VerifyCardDto,
+  CreateTransactionDto,
 } from './dto';
 import { MinioService } from 'src/minio/minio.service';
 import { FileInterceptor } from '@nestjs/platform-express/multer';
@@ -91,5 +92,13 @@ export class CardController {
   @Post('auth/verify')
   verifyCard(@Body() dto: VerifyCardDto) {
     return this.cardService.verifyCardSignature(dto);
+  }
+
+  @Post(':cardSerial/transaction')
+  async createTransaction(
+    @Param('cardSerial') cardSerial: string,
+    @Body() dto: CreateTransactionDto,
+  ) {
+    return this.cardService.processTransaction(cardSerial, dto);
   }
 }

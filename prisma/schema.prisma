@@ -5,9 +5,9 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider     = "prisma-client"
-  output       = "../generated/prisma"
-  moduleFormat = "cjs"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  // moduleFormat = "cjs"
 }
 
 datasource db {
@@ -61,7 +61,8 @@ model Card {
 // 3. Transaction History Table
 // Records traces of Earning/Spending points
 model Transaction {
-  id Int @id @default(autoincrement())
+  // unique postgresql string id
+  id String @id @default(cuid())
 
   // Amount of points changed (e.g., +100 or -50)
   amount Int
