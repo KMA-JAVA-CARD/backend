@@ -46,6 +46,9 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
+# Set NODE_PATH to ./dist so that absolute imports (src/...) work
+ENV NODE_PATH=./dist
+
 EXPOSE 8000
 
 # Chạy lệnh start bằng pnpm
