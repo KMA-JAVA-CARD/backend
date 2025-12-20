@@ -12,8 +12,10 @@ import {
   CardResponseDto,
   VerifyCardDto,
   CreateTransactionDto,
+  GetTransactionsDto,
 } from './dto';
 import * as crypto from 'crypto';
+import { Prisma } from 'src/generated/prisma/client';
 
 @Injectable()
 export class CardService {
@@ -356,6 +358,69 @@ export class CardService {
       newBalance: result.updatedCard.pointBalance,
       transactionId: result.transaction.id,
       pointChange: pointChange,
+    };
+  }
+
+  async getTransactions(query: GetTransactionsDto) {
+    const {
+      page = 1,
+      limit = 10,
+      startDate,
+      endDate,
+      type,
+      cardSerial,
+    } = query;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.TransactionWhereInput = {};
+
+    if (cardSerial) {
+      where.card = {
+        cardSerial,
+      };
+    }
+
+    if (type) {
+      where.type = type;
+    }
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        where.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        where.createdAt.lte = new Date(endDate);
+      }
+    }
+
+    const [transactions, total] = await this.prisma.$transaction([
+      this.prisma.transaction.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          card: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      }),
+      this.prisma.transaction.count({ where }),
+    ]);
+
+    return {
+      data: transactions,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 }

@@ -10,6 +10,7 @@ import {
   UploadedFile,
   BadRequestException,
   UseInterceptors,
+  Query,
 } from '@nestjs/common';
 import { CardService } from './card.service';
 import {
@@ -18,6 +19,7 @@ import {
   CardResponseDto,
   VerifyCardDto,
   CreateTransactionDto,
+  GetTransactionsDto,
 } from './dto';
 import { MinioService } from 'src/minio/minio.service';
 import { FileInterceptor } from '@nestjs/platform-express/multer';
@@ -50,6 +52,11 @@ export class CardController {
       ...registerCardDto,
       avatarUrl,
     });
+  }
+
+  @Get('transactions')
+  async getTransactions(@Query() query: GetTransactionsDto) {
+    return this.cardService.getTransactions(query);
   }
 
   @Get(':cardSerial')

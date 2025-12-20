@@ -3,3 +3,4 @@ export * from './update-user.dto';
 export * from './card-response.dto';
 export * from './verify-card.dto';
 export * from './create-transaction.dto';
+export * from './get-transactions.dto';
