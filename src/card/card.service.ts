@@ -423,4 +423,35 @@ export class CardService {
       },
     };
   }
+
+  async getAllUsers() {
+    const users = await this.prisma.user.findMany({
+      include: {
+        card: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return users.map((user) => ({
+      id: user.id,
+      fullName: user.fullName,
+      phone: user.phone,
+      email: user.email,
+      address: user.address,
+      dob: user.dob,
+      avatarUrl: user.avatarUrl,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      card: user.card
+        ? {
+            id: user.card.id,
+            cardSerial: user.card.cardSerial,
+            pointBalance: user.card.pointBalance,
+            status: user.card.status,
+          }
+        : null,
+    }));
+  }
 }

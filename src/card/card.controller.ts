@@ -59,6 +59,11 @@ export class CardController {
     return this.cardService.getTransactions(query);
   }
 
+  @Get('users')
+  async getAllUsers() {
+    return this.cardService.getAllUsers();
+  }
+
   @Get(':cardSerial')
   async getCardInfo(
     @Param('cardSerial') cardSerial: string,
