@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # --- 1. MinIO (Lưu trữ ảnh) ---
+  minio:
+    image: minio/minio:latest
+    container_name: javacard-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000" # API Port
+      - "9001:9001" # Console UI Port
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-password123}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - javacard_network
+
+  # --- 2. NestJS Backend (API) ---
+  api:
+    build: .
+    container_name: javacard_api
+    restart: on-failure
+    ports:
+      - "8000:8000"
+    environment:
+      NODE_ENV: development
+      # Sử dụng DATABASE_URL từ file .env hoặc biến môi trường của hệ thống (cho Cloud DB)
+      DATABASE_URL: ${DATABASE_URL}
+      
+      # Cấu hình MinIO (Internal Network)
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-admin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-password123}
+      AWS_BUCKET_NAME: ${MINIO_BUCKET_NAME:-avatars}
+      
+      # Endpoint để Backend giao tiếp với MinIO (Internal)
+      AWS_ENDPOINT: http://javacard-minio:9000
+
+      MINIO_EXTERNAL_ENDPOINT: http://localhost:9000
+      
+    depends_on:
+      minio:
+        condition: service_started
+    networks:
+      - javacard_network
+
+volumes:
+  minio_data:
+    driver: local
+
+networks:
+  javacard_network:
+    driver: bridge
