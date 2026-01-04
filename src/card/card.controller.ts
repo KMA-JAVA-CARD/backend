@@ -21,7 +21,7 @@ import {
   CreateTransactionDto,
   GetTransactionsDto,
 } from './dto';
-import { MinioService } from 'src/minio/minio.service';
+import { MinioService } from '../minio/minio.service';
 import { FileInterceptor } from '@nestjs/platform-express/multer';
 
 @Controller('cards')
@@ -29,7 +29,7 @@ export class CardController {
   constructor(
     private readonly cardService: CardService,
     private readonly minioService: MinioService,
-  ) {}
+  ) { }
 
   @Post('register')
   @UseInterceptors(FileInterceptor('avatar'))

@@ -4,6 +4,7 @@ export class CardResponseDto {
   publicKey: string;
   pointBalance: number;
   status: string;
+  tier: string;
   createdAt: Date;
   updatedAt: Date;
   user: {

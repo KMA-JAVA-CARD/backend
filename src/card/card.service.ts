@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 
-import { PrismaService } from 'src/prisma/prisma.service.js';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   RegisterCardDto,
   UpdateUserDto,
@@ -15,11 +15,21 @@ import {
   GetTransactionsDto,
 } from './dto';
 import * as crypto from 'crypto';
-import { Prisma } from 'src/generated/prisma/client';
+import { Prisma } from '../generated/prisma/client';
 
 @Injectable()
 export class CardService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
+
+  // Tính toán hạng thành viên dựa trên điểm tích lũy
+  // Silver: 0 - 999 điểm
+  // Gold: 1000 - 4999 điểm
+  // Diamond: 5000+ điểm
+  private calculateTier(points: number): 'SILVER' | 'GOLD' | 'DIAMOND' {
+    if (points >= 5000) return 'DIAMOND';
+    if (points >= 1000) return 'GOLD';
+    return 'SILVER';
+  }
 
   async registerCard(
     registerCardDto: RegisterCardDto,
@@ -28,6 +38,7 @@ export class CardService {
       cardSerial,
       publicKey,
       pointBalance = 20, // Mặc định tặng 20 điểm khi đăng ký
+      tier = 'SILVER', // Mặc định cấp Silver
       fullName,
       phone,
       email,
@@ -68,6 +79,7 @@ export class CardService {
             cardSerial,
             publicKey,
             pointBalance,
+            tier: tier as any,
           },
         },
       },
@@ -82,6 +94,7 @@ export class CardService {
       publicKey: result.card!.publicKey,
       pointBalance: result.card!.pointBalance,
       status: result.card!.status,
+      tier: result.card!.tier,
       createdAt: result.card!.createdAt,
       updatedAt: result.card!.updatedAt,
       user: {
@@ -116,6 +129,7 @@ export class CardService {
       publicKey: card.publicKey,
       pointBalance: card.pointBalance,
       status: card.status,
+      tier: card.tier,
       createdAt: card.createdAt,
       updatedAt: card.updatedAt,
       user: {
@@ -185,6 +199,7 @@ export class CardService {
       publicKey: updatedUser.card!.publicKey,
       pointBalance: updatedUser.card!.pointBalance,
       status: updatedUser.card!.status,
+      tier: updatedUser.card!.tier,
       createdAt: updatedUser.card!.createdAt,
       updatedAt: updatedUser.card!.updatedAt,
       user: {
@@ -340,12 +355,16 @@ export class CardService {
       });
 
       // 2. Cập nhật số dư thẻ
+      const newBalance = card.pointBalance + pointChange;
+
+      // 3. Tự động nâng cấp hạng thành viên theo điểm
+      const newTier = this.calculateTier(newBalance);
+
       const updatedCard = await tx.card.update({
         where: { id: card.id },
         data: {
-          pointBalance: {
-            increment: pointChange, // Cộng số âm nếu là REDEEM
-          },
+          pointBalance: newBalance,
+          tier: newTier, // Cập nhật tier tự động
         },
         include: { user: true }, // Trả về cả info user để UI cập nhật
       });
@@ -356,6 +375,7 @@ export class CardService {
     return {
       success: true,
       newBalance: result.updatedCard.pointBalance,
+      tier: result.updatedCard.tier, // Trả về tier mới
       transactionId: result.transaction.id,
       pointChange: pointChange,
     };
@@ -446,11 +466,11 @@ export class CardService {
       updatedAt: user.updatedAt,
       card: user.card
         ? {
-            id: user.card.id,
-            cardSerial: user.card.cardSerial,
-            pointBalance: user.card.pointBalance,
-            status: user.card.status,
-          }
+          id: user.card.id,
+          cardSerial: user.card.cardSerial,
+          pointBalance: user.card.pointBalance,
+          status: user.card.status,
+        }
         : null,
     }));
   }

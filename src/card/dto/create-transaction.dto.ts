@@ -6,7 +6,7 @@ import {
   IsString,
   Min,
 } from 'class-validator';
-import { TransactionType } from 'src/generated/prisma/client.js';
+import { TransactionType } from '../../generated/prisma/client';
 
 export class CreateTransactionDto {
   @IsEnum(TransactionType)

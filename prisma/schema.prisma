@@ -47,6 +47,9 @@ model Card {
   // Card status (For Backend to have the right to refuse service if the card is reported lost)
   status CardStatus @default(ACTIVE)
 
+  // Membership tier (Silver, Gold, Diamond)
+  tier MembershipTier @default(SILVER)
+
   // Foreign key linking to User
   userId Int  @unique
   user   User @relation(fields: [userId], references: [id])
@@ -95,4 +98,10 @@ enum CardStatus {
 enum TransactionType {
   EARN // Earn/Accumulate points
   REDEEM // Redeem/Spend points
+}
+
+enum MembershipTier {
+  SILVER // Standard member
+  GOLD // VIP member
+  DIAMOND // Premium member
 }

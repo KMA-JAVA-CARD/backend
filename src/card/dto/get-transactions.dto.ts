@@ -7,7 +7,7 @@ import {
   IsString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TransactionType } from 'src/generated/prisma/client';
+import { TransactionType } from '../../generated/prisma/client';
 
 export class GetTransactionsDto {
   @IsOptional()

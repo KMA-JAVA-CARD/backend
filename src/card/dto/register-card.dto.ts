@@ -45,4 +45,8 @@ export class RegisterCardDto {
   @Min(0)
   @IsOptional()
   pointBalance?: number;
+
+  @IsString()
+  @IsOptional()
+  tier?: 'SILVER' | 'GOLD' | 'DIAMOND';
 }
